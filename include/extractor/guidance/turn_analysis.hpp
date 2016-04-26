@@ -46,6 +46,8 @@ class TurnAnalysis
 
   private:
     const util::NodeBasedDynamicGraph &node_based_graph;
+    const std::vector<QueryNode> &node_info_list;
+    const CompressedEdgeContainer &compressed_edge_container;
     const IntersectionGenerator intersection_generator;
     const RoundaboutHandler roundabout_handler;
     const MotorwayHandler motorway_handler;

@@ -10,6 +10,7 @@
 #include "util/timing_util.hpp"
 
 #include "extractor/guidance/toolkit.hpp"
+#include "extractor/guidance/turn_analysis.hpp"
 
 #include <boost/assert.hpp>
 #include <boost/numeric/conversion/cast.hpp>

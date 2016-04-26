@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <iomanip>
 #include <limits>
+#include <map>
 #include <set>
 #include <unordered_set>
 
@@ -31,11 +32,13 @@ TurnAnalysis::TurnAnalysis(const util::NodeBasedDynamicGraph &node_based_graph,
                            const std::unordered_set<NodeID> &barrier_nodes,
                            const CompressedEdgeContainer &compressed_edge_container,
                            const util::NameTable &name_table)
-    : node_based_graph(node_based_graph), intersection_generator(node_based_graph,
-                                                                 restriction_map,
-                                                                 barrier_nodes,
-                                                                 node_info_list,
-                                                                 compressed_edge_container),
+    : node_based_graph(node_based_graph), node_info_list(node_info_list),
+      compressed_edge_container(compressed_edge_container),
+      intersection_generator(node_based_graph,
+                             restriction_map,
+                             barrier_nodes,
+                             node_info_list,
+                             compressed_edge_container),
       roundabout_handler(node_based_graph, node_info_list, name_table),
       motorway_handler(node_based_graph, node_info_list, name_table),
       turn_handler(node_based_graph, node_info_list, name_table)
@@ -65,6 +68,30 @@ std::vector<TurnOperation> TurnAnalysis::getTurns(const NodeID from_nid, const E
             BOOST_ASSERT(turn_handler.canProcess(from_nid, via_eid, intersection));
             intersection = turn_handler(from_nid, via_eid, std::move(intersection));
         }
+    }
+
+    static std::map<std::vector<TurnPossibility>, int, compareTurnPossibility> turn_map;
+
+    auto turn_class =
+        guidance::classifyIntersection(node_based_graph.GetTarget(via_eid), intersection,
+                                       node_based_graph, compressed_edge_container, node_info_list);
+
+    static std::size_t duplicates = 0;
+    if (turn_map.count(turn_class) == 0)
+    {
+        std::cout << "Intersection [" << turn_map.size() << "]:";
+        for (auto turn : turn_class)
+        {
+            std::cout << " (" << turn.entry_allowed << ":" << (int)turn.bearing << ")";
+        }
+        std::cout << std::endl;
+        turn_map[turn_class] = turn_map.size();
+    }
+    else
+    {
+        duplicates++;
+        if( duplicates % 1000 == 0 )
+            std::cout << "Duplicates: " << duplicates << std::endl;
     }
 
     std::vector<TurnOperation> turns;
