@@ -58,6 +58,30 @@ struct compareTurnPossibility
     }
 };
 
+struct compareEntryClass
+{
+    // check lexicographi order of turn possibilities
+    bool operator()(const std::vector<TurnPossibility> &left,
+                    const std::vector<TurnPossibility> &right) const
+    {
+        for (std::size_t index = 0; index < std::min(left.size(), right.size()); ++index)
+        {
+            /*
+            if (left[index].bearing < right[index].bearing)
+                return true;
+            if (left[index].bearing > right[index].bearing)
+                return false;
+            */
+            if (left[index].entry_allowed && !right[index].entry_allowed)
+                return true;
+            if (!left[index].entry_allowed && right[index].entry_allowed)
+                return false;
+        }
+        return left.size() < right.size();
+    }
+
+};
+
 inline std::vector<TurnPossibility>
 classifyIntersection(NodeID nid,
                      const Intersection &intersection,

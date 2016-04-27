@@ -71,12 +71,15 @@ std::vector<TurnOperation> TurnAnalysis::getTurns(const NodeID from_nid, const E
     }
 
     static std::map<std::vector<TurnPossibility>, int, compareTurnPossibility> turn_map;
+    static std::map<std::vector<TurnPossibility>, int, compareEntryClass> entry_map;
 
     auto turn_class =
         guidance::classifyIntersection(node_based_graph.GetTarget(via_eid), intersection,
                                        node_based_graph, compressed_edge_container, node_info_list);
 
     static std::size_t duplicates = 0;
+    static std::size_t duplicates2 = 0;
+
     if (turn_map.count(turn_class) == 0)
     {
         std::cout << "Intersection [" << turn_map.size() << "]:";
@@ -91,8 +94,34 @@ std::vector<TurnOperation> TurnAnalysis::getTurns(const NodeID from_nid, const E
     {
         duplicates++;
         if( duplicates % 1000 == 0 )
+        {
             std::cout << "Duplicates: " << duplicates << std::endl;
+            std::cout << "Turn Classes: " << turn_map.size() << " Entry Classes: " << entry_map.size() << std::endl;
+        }
     }
+    if (entry_map.count(turn_class) == 0)
+    {
+        std::cout << "Intersection [" << entry_map.size() << "]:";
+        for (auto turn : turn_class)
+        {
+            std::cout << " (" << turn.entry_allowed << ":" << (int)turn.bearing << ")";
+        }
+        std::cout << std::endl;
+        entry_map[turn_class] = entry_map.size();
+    }
+    else
+    {
+        duplicates2++;
+        if( duplicates2 % 1000 == 0 )
+        {
+            std::cout << "Duplicates: " << duplicates2 << std::endl;
+            std::cout << "Turn Classes: " << turn_map.size() << " Entry Classes: " << entry_map.size() << std::endl;
+        }
+    }
+
+
+
+
 
     std::vector<TurnOperation> turns;
     for (auto road : intersection)

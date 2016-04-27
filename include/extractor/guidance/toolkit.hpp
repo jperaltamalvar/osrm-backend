@@ -34,7 +34,7 @@ const constexpr bool shiftable_cw[] = {false, false, true, true, false, false, t
 const constexpr std::uint8_t modifier_bounds[detail::num_direction_modifiers] = {
     0, 36, 93, 121, 136, 163, 220, 255};
 
-const constexpr double discrete_angle_step_size = 360. / 32.;
+const constexpr double discrete_angle_step_size = 360. / 24;
 
 template <typename IteratorType>
 util::Coordinate
