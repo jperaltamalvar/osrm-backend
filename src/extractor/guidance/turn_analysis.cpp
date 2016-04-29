@@ -11,6 +11,7 @@
 #include <map>
 #include <set>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace osrm
 {
@@ -70,8 +71,8 @@ std::vector<TurnOperation> TurnAnalysis::getTurns(const NodeID from_nid, const E
         }
     }
 
-    static std::map<std::vector<TurnPossibility>, int, compareTurnPossibility> turn_map;
-    static std::map<std::vector<TurnPossibility>, int, compareEntryClass> entry_map;
+    static std::unordered_map<BearingClass, int> turn_map;
+    static std::unordered_map<EntryClass, int> entry_map;
 
     auto turn_class =
         guidance::classifyIntersection(node_based_graph.GetTarget(via_eid), intersection,
@@ -80,15 +81,10 @@ std::vector<TurnOperation> TurnAnalysis::getTurns(const NodeID from_nid, const E
     static std::size_t duplicates = 0;
     static std::size_t duplicates2 = 0;
 
-    if (turn_map.count(turn_class) == 0)
+    if (turn_map.count(turn_class.second) == 0)
     {
-        std::cout << "Intersection [" << turn_map.size() << "]:";
-        for (auto turn : turn_class)
-        {
-            std::cout << " (" << turn.entry_allowed << ":" << (int)turn.bearing << ")";
-        }
-        std::cout << std::endl;
-        turn_map[turn_class] = turn_map.size();
+        std::cout << "Bearings [" << turn_map.size() << "]:" << turn_class.second.getStringRepresentation() << std::endl;
+        turn_map[turn_class.second] = turn_map.size();
     }
     else
     {
@@ -99,15 +95,11 @@ std::vector<TurnOperation> TurnAnalysis::getTurns(const NodeID from_nid, const E
             std::cout << "Turn Classes: " << turn_map.size() << " Entry Classes: " << entry_map.size() << std::endl;
         }
     }
-    if (entry_map.count(turn_class) == 0)
+
+    if (entry_map.count(turn_class.first) == 0)
     {
-        std::cout << "Intersection [" << entry_map.size() << "]:";
-        for (auto turn : turn_class)
-        {
-            std::cout << " (" << turn.entry_allowed << ":" << (int)turn.bearing << ")";
-        }
-        std::cout << std::endl;
-        entry_map[turn_class] = entry_map.size();
+        std::cout << "Entry: [" << entry_map.size() << "]:" << turn_class.first.getStringRepresentation() << std::endl;
+        entry_map[turn_class.first] = entry_map.size();
     }
     else
     {
@@ -118,10 +110,6 @@ std::vector<TurnOperation> TurnAnalysis::getTurns(const NodeID from_nid, const E
             std::cout << "Turn Classes: " << turn_map.size() << " Entry Classes: " << entry_map.size() << std::endl;
         }
     }
-
-
-
-
 
     std::vector<TurnOperation> turns;
     for (auto road : intersection)

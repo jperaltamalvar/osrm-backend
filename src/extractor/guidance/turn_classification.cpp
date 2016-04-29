@@ -7,6 +7,19 @@ namespace extractor
 namespace guidance
 {
 
+struct TurnPossibility
+{
+    TurnPossibility(bool entry_allowed, DiscreteAngle bearing)
+        : entry_allowed(entry_allowed), bearing(std::move(bearing))
+    {
+    }
+
+    TurnPossibility() : entry_allowed(false), bearing(0) {}
+
+    bool entry_allowed;
+    DiscreteAngle bearing;
+};
+
 std::pair<EntryClass, BearingClass>
 classifyIntersection(NodeID nid,
                      const Intersection &intersection,
@@ -27,12 +40,11 @@ classifyIntersection(NodeID nid,
             nid, node_based_graph.GetTarget(eid), eid, false, compressed_geometries, query_nodes);
 
         double bearing = util::coordinate_calculation::bearing(node_coordinate, edge_coordinate);
-        turns.emplace_back(road.entry_allowed,
-                           (bearing + (0.5 * discrete_angle_step_size)) / discrete_angle_step_size);
+        turns.emplace_back(road.entry_allowed, bearing);
     }
 
     if (turns.empty())
-        return turns;
+        return {};
 
     std::sort(turns.begin(), turns.end(),
               [](const TurnPossibility left, const TurnPossibility right) {
@@ -46,14 +58,15 @@ classifyIntersection(NodeID nid,
     */
 
     EntryClass entry_class;
-    for( std::size_t i = 0; i < turns.size(); ++i )
-        entry_class.activate(i);
+    for (std::size_t i = 0; i < turns.size(); ++i)
+        if( turns[i].entry_allowed )
+            entry_class.activate(i);
 
     BearingClass bearing_class;
-    for( std::size_t i = 0; i < turns.size(); ++i )
+    for (std::size_t i = 0; i < turns.size(); ++i)
         bearing_class.addContinuous(turns[i].bearing);
 
-    return turns;
+    return std::make_pair(entry_class, bearing_class);
 }
 
 } // namespace guidance

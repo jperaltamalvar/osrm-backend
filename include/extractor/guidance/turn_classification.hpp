@@ -25,66 +25,6 @@ namespace extractor
 namespace guidance
 {
 
-struct TurnPossibility
-{
-    TurnPossibility(bool entry_allowed, DiscreteAngle bearing)
-        : entry_allowed(entry_allowed), bearing(std::move(bearing))
-    {
-    }
-
-    TurnPossibility() : entry_allowed(false), bearing(0) {}
-
-    bool entry_allowed;
-    DiscreteAngle bearing;
-};
-
-struct compareTurnPossibility
-{
-    // check lexicographi order of turn possibilities
-    inline bool operator()(const std::vector<TurnPossibility> &left,
-                    const std::vector<TurnPossibility> &right) const
-    {
-        for (std::size_t index = 0; index < std::min(left.size(), right.size()); ++index)
-        {
-            if (left[index].bearing < right[index].bearing)
-                return true;
-            if (left[index].bearing > right[index].bearing)
-                return false;
-            /*
-            if (left[index].entry_allowed && !right[index].entry_allowed)
-                return true;
-            if (!left[index].entry_allowed && right[index].entry_allowed)
-                return false;
-            */
-        }
-        return left.size() < right.size();
-    }
-};
-
-struct compareEntryClass
-{
-    // check lexicographi order of turn possibilities
-    inline bool operator()(const std::vector<TurnPossibility> &left,
-                    const std::vector<TurnPossibility> &right) const
-    {
-        for (std::size_t index = 0; index < std::min(left.size(), right.size()); ++index)
-        {
-            /*
-            if (left[index].bearing < right[index].bearing)
-                return true;
-            if (left[index].bearing > right[index].bearing)
-                return false;
-            */
-            if (left[index].entry_allowed && !right[index].entry_allowed)
-                return true;
-            if (!left[index].entry_allowed && right[index].entry_allowed)
-                return false;
-        }
-        return left.size() < right.size();
-    }
-
-};
-
 std::pair<EntryClass,BearingClass>
 classifyIntersection(NodeID nid,
                      const Intersection &intersection,
