@@ -6,7 +6,6 @@
 #include "engine/datafacade/datafacade_base.hpp"
 
 #include "extractor/guidance/turn_instruction.hpp"
-#include "extractor/guidance/intersection_class.hpp"
 #include "extractor/guidance/bearing_class.hpp"
 #include "extractor/guidance/entry_class.hpp"
 
@@ -91,11 +90,8 @@ class InternalDataFacade final : public BaseDataFacade
     boost::filesystem::path file_index_path;
     util::RangeTable<16, false> m_name_table;
 
-    // A list storing intersection classes for every node. The itself contains lookup-ids into
-    // smaller tables containing the actual information on the intersection
-    util::ShM<extractor::guidance::IntersectionClass, false> m_intersection_class_list;
     // the look-up table for entry classes. An entry class lists the possibility of entry for all
-    // available turns
+    // available turns. For every turn, there is an associated entry class.
     util::ShM<extractor::guidance::EntryClass, false> m_entry_class_table;
     // the look-up table for distinct bearing classes. A bearing class lists the available bearings
     // at an intersection

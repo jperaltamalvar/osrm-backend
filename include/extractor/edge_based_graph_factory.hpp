@@ -10,9 +10,11 @@
 #include "extractor/edge_based_node.hpp"
 #include "extractor/original_edge_data.hpp"
 #include "extractor/query_node.hpp"
-#include "extractor/guidance/turn_analysis.hpp"
 
+#include "extractor/guidance/turn_analysis.hpp"
 #include "extractor/guidance/turn_instruction.hpp"
+#include "extractor/guidance/bearing_class.hpp"
+#include "extractor/guidance/entry_class.hpp"
 
 #include "util/node_based_graph.hpp"
 #include "util/typedefs.hpp"

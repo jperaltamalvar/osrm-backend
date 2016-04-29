@@ -8,7 +8,6 @@
 #include "storage/shared_memory.hpp"
 
 #include "extractor/guidance/turn_instruction.hpp"
-#include "extractor/guidance/intersection_class.hpp"
 #include "extractor/guidance/bearing_class.hpp"
 #include "extractor/guidance/entry_class.hpp"
 #include "extractor/profile_properties.hpp"
@@ -97,11 +96,8 @@ class SharedDataFacade final : public BaseDataFacade
 
     std::shared_ptr<util::RangeTable<16, true>> m_name_table;
 
-    // A list storing intersection classes for every node. The itself contains lookup-ids into
-    // smaller tables containing the actual information on the intersection
-    util::ShM<extractor::guidance::IntersectionClass, true> m_intersection_class_list;
     // the look-up table for entry classes. An entry class lists the possibility of entry for all
-    // available turns
+    // available turns. Such a class id is stored with every edge.
     util::ShM<extractor::guidance::EntryClass, true> m_entry_class_table;
     // the look-up table for distinct bearing classes. A bearing class lists the available bearings
     // at an intersection

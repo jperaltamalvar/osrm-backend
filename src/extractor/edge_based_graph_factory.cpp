@@ -22,6 +22,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
 namespace osrm
 {
@@ -323,6 +324,12 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
     util::Percent progress(m_node_based_graph->GetNumberOfNodes());
     guidance::TurnAnalysis turn_analysis(*m_node_based_graph, m_node_info_list, *m_restriction_map,
                                          m_barrier_nodes, m_compressed_edge_container, name_table);
+
+    std::vector<std::uint32_t> bearing_class_by_node_based_node(
+        m_node_based_graph->GetNumberOfNodes(), std::numeric_limits<std::uint32_t>::max());
+    std::unordered_map<guidance::BearingClass, std::uint32_t> bearing_class_hash;
+    std::unordered_map<guidance::EntryClass, std::uint16_t> entry_class_hash;
+
     for (const auto node_u : util::irange(0u, m_node_based_graph->GetNumberOfNodes()))
     {
         progress.printStatus(node_u);
@@ -337,6 +344,39 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
             auto possible_turns = turn_analysis.getTurns(node_u, edge_from_u);
 
             const NodeID node_v = m_node_based_graph->GetTarget(edge_from_u);
+
+            // the entry class depends on the turn, so we have to classify the interesction for
+            // every edge
+            const auto turn_classification = classifyIntersection(
+                node_v, turn_analysis.getIntersection(node_u, edge_from_u), *m_node_based_graph,
+                m_compressed_edge_container, m_node_info_list);
+
+            const auto entry_class_id = [&](const guidance::EntryClass entry_class) {
+                if (0 == entry_class_hash.count(entry_class))
+                {
+                    const auto id = static_cast<std::uint16_t>(entry_class_hash.size());
+                    entry_class_hash[entry_class] = id;
+                    return id;
+                }
+                else
+                {
+                    return entry_class_hash.find(entry_class)->second;
+                }
+            }(turn_classification.first);
+
+            const auto bearing_class_id = [&](const guidance::BearingClass bearing_class) {
+                if (0 == bearing_class_hash.count(bearing_class))
+                {
+                    const auto id = static_cast<std::uint32_t>(bearing_class_hash.size());
+                    bearing_class_hash[bearing_class] = id;
+                    return id;
+                }
+                else
+                {
+                    return bearing_class_hash.find(bearing_class)->second;
+                }
+            }(turn_classification.second);
+            bearing_class_by_node_based_node[node_v] = bearing_class_id;
 
             for (const auto turn : possible_turns)
             {
@@ -371,7 +411,7 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
                 BOOST_ASSERT(m_compressed_edge_container.HasEntryForID(edge_from_u));
                 original_edge_data_vector.emplace_back(
                     m_compressed_edge_container.GetPositionForID(edge_from_u), edge_data1.name_id,
-                    turn_instruction, edge_data1.travel_mode);
+                    turn_instruction, entry_class_id, edge_data1.travel_mode);
 
                 ++original_edges_counter;
 
@@ -436,6 +476,9 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
             }
         }
     }
+
+    util::SimpleLogger().Write() << "Created " << entry_class_hash.size() << " entry classes and "
+                                 << bearing_class_hash.size() << " Bearing Classes";
 
     FlushVectorToStream(edge_data_file, original_edge_data_vector);
 

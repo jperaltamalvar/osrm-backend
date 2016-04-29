@@ -51,12 +51,6 @@ classifyIntersection(NodeID nid,
                   return left.bearing < right.bearing;
               });
 
-    /*
-    auto delta = turns.front().bearing;
-    for (auto &turn : turns)
-        turn.bearing -= delta;
-    */
-
     EntryClass entry_class;
     for (std::size_t i = 0; i < turns.size(); ++i)
         if( turns[i].entry_allowed )

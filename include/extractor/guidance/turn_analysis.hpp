@@ -44,10 +44,11 @@ class TurnAnalysis
     // the entry into the turn analysis
     std::vector<TurnOperation> getTurns(const NodeID from_node, const EdgeID via_eid) const;
 
+    // access to the intersection representation for classification purposes
+    Intersection getIntersection(const NodeID from_node, const EdgeID via_eid) const;
+
   private:
     const util::NodeBasedDynamicGraph &node_based_graph;
-    const std::vector<QueryNode> &node_info_list;
-    const CompressedEdgeContainer &compressed_edge_container;
     const IntersectionGenerator intersection_generator;
     const RoundaboutHandler roundabout_handler;
     const MotorwayHandler motorway_handler;
