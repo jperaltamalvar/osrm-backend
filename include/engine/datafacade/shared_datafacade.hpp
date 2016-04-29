@@ -8,15 +8,18 @@
 #include "storage/shared_memory.hpp"
 
 #include "extractor/guidance/turn_instruction.hpp"
+#include "extractor/guidance/intersection_class.hpp"
+#include "extractor/guidance/bearing_class.hpp"
+#include "extractor/guidance/entry_class.hpp"
 #include "extractor/profile_properties.hpp"
 
 #include "engine/geospatial_query.hpp"
+#include "util/make_unique.hpp"
 #include "util/range_table.hpp"
+#include "util/rectangle.hpp"
+#include "util/simple_logger.hpp"
 #include "util/static_graph.hpp"
 #include "util/static_rtree.hpp"
-#include "util/make_unique.hpp"
-#include "util/simple_logger.hpp"
-#include "util/rectangle.hpp"
 
 #include <cstddef>
 
@@ -29,9 +32,9 @@
 #include <vector>
 
 #include <boost/assert.hpp>
-#include <boost/thread/tss.hpp>
-#include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/tss.hpp>
 
 namespace osrm
 {
@@ -70,7 +73,7 @@ class SharedDataFacade final : public BaseDataFacade
     std::unique_ptr<storage::SharedMemory> m_layout_memory;
     std::unique_ptr<storage::SharedMemory> m_large_memory;
     std::string m_timestamp;
-    extractor::ProfileProperties* m_profile_properties;
+    extractor::ProfileProperties *m_profile_properties;
 
     std::shared_ptr<util::ShM<util::Coordinate, true>::vector> m_coordinate_list;
     util::ShM<NodeID, true>::vector m_via_node_list;
@@ -94,6 +97,16 @@ class SharedDataFacade final : public BaseDataFacade
 
     std::shared_ptr<util::RangeTable<16, true>> m_name_table;
 
+    // A list storing intersection classes for every node. The itself contains lookup-ids into
+    // smaller tables containing the actual information on the intersection
+    util::ShM<extractor::guidance::IntersectionClass, true> m_intersection_class_list;
+    // the look-up table for entry classes. An entry class lists the possibility of entry for all
+    // available turns
+    util::ShM<extractor::guidance::EntryClass, true> m_entry_class_table;
+    // the look-up table for distinct bearing classes. A bearing class lists the available bearings
+    // at an intersection
+    util::ShM<extractor::guidance::BearingClass, true> m_bearing_class_table;
+
     void LoadChecksum()
     {
         m_check_sum = *data_layout->GetBlockPtr<unsigned>(shared_memory,
@@ -103,8 +116,8 @@ class SharedDataFacade final : public BaseDataFacade
 
     void LoadProfileProperties()
     {
-        m_profile_properties =
-            data_layout->GetBlockPtr<extractor::ProfileProperties>(shared_memory, storage::SharedDataLayout::PROPERTIES);
+        m_profile_properties = data_layout->GetBlockPtr<extractor::ProfileProperties>(
+            shared_memory, storage::SharedDataLayout::PROPERTIES);
     }
 
     void LoadTimestamp()
@@ -426,8 +439,7 @@ class SharedDataFacade final : public BaseDataFacade
         result_nodes.clear();
         result_nodes.reserve(end - begin);
         std::for_each(m_geometry_list.begin() + begin, m_geometry_list.begin() + end,
-                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge)
-                      {
+                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge) {
                           result_nodes.emplace_back(edge.node_id);
                       });
     }
@@ -442,8 +454,7 @@ class SharedDataFacade final : public BaseDataFacade
         result_weights.clear();
         result_weights.reserve(end - begin);
         std::for_each(m_geometry_list.begin() + begin, m_geometry_list.begin() + end,
-                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge)
-                      {
+                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge) {
                           result_weights.emplace_back(edge.weight);
                       });
     }
@@ -684,11 +695,9 @@ class SharedDataFacade final : public BaseDataFacade
         }
         else
         {
-            std::for_each(m_datasource_list.begin() + begin, m_datasource_list.begin() + end,
-                          [&](const uint8_t &datasource_id)
-                          {
-                              result_datasources.push_back(datasource_id);
-                          });
+            std::for_each(
+                m_datasource_list.begin() + begin, m_datasource_list.begin() + end,
+                [&](const uint8_t &datasource_id) { result_datasources.push_back(datasource_id); });
         }
     }
 
@@ -709,7 +718,10 @@ class SharedDataFacade final : public BaseDataFacade
 
     std::string GetTimestamp() const override final { return m_timestamp; }
 
-    bool GetContinueStraightDefault() const override final { return m_profile_properties->continue_straight_at_waypoint; }
+    bool GetContinueStraightDefault() const override final
+    {
+        return m_profile_properties->continue_straight_at_waypoint;
+    }
 };
 }
 }

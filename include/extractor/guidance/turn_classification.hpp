@@ -3,6 +3,8 @@
 
 #include "extractor/guidance/intersection.hpp"
 #include "extractor/guidance/toolkit.hpp"
+#include "extractor/guidance/entry_class.hpp"
+#include "extractor/guidance/bearing_class.hpp"
 
 #include "util/coordinate.hpp"
 #include "util/node_based_graph.hpp"
@@ -14,6 +16,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <vector>
+#include <utility>
 
 namespace osrm
 {
@@ -38,7 +41,7 @@ struct TurnPossibility
 struct compareTurnPossibility
 {
     // check lexicographi order of turn possibilities
-    bool operator()(const std::vector<TurnPossibility> &left,
+    inline bool operator()(const std::vector<TurnPossibility> &left,
                     const std::vector<TurnPossibility> &right) const
     {
         for (std::size_t index = 0; index < std::min(left.size(), right.size()); ++index)
@@ -61,7 +64,7 @@ struct compareTurnPossibility
 struct compareEntryClass
 {
     // check lexicographi order of turn possibilities
-    bool operator()(const std::vector<TurnPossibility> &left,
+    inline bool operator()(const std::vector<TurnPossibility> &left,
                     const std::vector<TurnPossibility> &right) const
     {
         for (std::size_t index = 0; index < std::min(left.size(), right.size()); ++index)
@@ -82,46 +85,12 @@ struct compareEntryClass
 
 };
 
-inline std::vector<TurnPossibility>
+std::pair<EntryClass,BearingClass>
 classifyIntersection(NodeID nid,
                      const Intersection &intersection,
                      const util::NodeBasedDynamicGraph &node_based_graph,
                      const extractor::CompressedEdgeContainer &compressed_geometries,
-                     const std::vector<extractor::QueryNode> &query_nodes)
-{
-
-    std::vector<TurnPossibility> turns;
-
-    const auto node_coordinate = util::Coordinate(query_nodes[nid].lon, query_nodes[nid].lat);
-
-    // generate a list of all turn angles between a base edge, the node and a current edge
-    for (const auto &road : intersection)
-    {
-        const auto eid = road.turn.eid;
-        const auto edge_coordinate = getRepresentativeCoordinate(
-            nid, node_based_graph.GetTarget(eid), eid, false, compressed_geometries, query_nodes);
-
-        double bearing = util::coordinate_calculation::bearing(node_coordinate, edge_coordinate);
-        turns.emplace_back(road.entry_allowed, discretizeAngle(bearing));
-    }
-
-    if( turns.empty() )
-        return turns;
-
-    std::sort(turns.begin(), turns.end(),
-              [](const TurnPossibility left, const TurnPossibility right) {
-                  return left.bearing < right.bearing;
-              });
-    for( size_t i = 1; i < turns.size(); ++i )
-        if( turns[i-1].bearing == turns[i].bearing )
-            turns[i].bearing++;
-
-    auto delta = turns.front().bearing;
-    for( auto & turn : turns )
-        turn.bearing -= delta;
-
-    return turns;
-}
+                     const std::vector<extractor::QueryNode> &query_nodes);
 
 } // namespace guidance
 } // namespace extractor

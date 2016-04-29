@@ -6,20 +6,23 @@
 #include "engine/datafacade/datafacade_base.hpp"
 
 #include "extractor/guidance/turn_instruction.hpp"
+#include "extractor/guidance/intersection_class.hpp"
+#include "extractor/guidance/bearing_class.hpp"
+#include "extractor/guidance/entry_class.hpp"
 
+#include "contractor/query_edge.hpp"
 #include "engine/geospatial_query.hpp"
+#include "extractor/compressed_edge_container.hpp"
 #include "extractor/original_edge_data.hpp"
 #include "extractor/profile_properties.hpp"
 #include "extractor/query_node.hpp"
-#include "contractor/query_edge.hpp"
+#include "util/graph_loader.hpp"
+#include "util/range_table.hpp"
+#include "util/rectangle.hpp"
 #include "util/shared_memory_vector_wrapper.hpp"
+#include "util/simple_logger.hpp"
 #include "util/static_graph.hpp"
 #include "util/static_rtree.hpp"
-#include "util/range_table.hpp"
-#include "util/graph_loader.hpp"
-#include "util/simple_logger.hpp"
-#include "util/rectangle.hpp"
-#include "extractor/compressed_edge_container.hpp"
 
 #include "osrm/coordinate.hpp"
 
@@ -88,6 +91,16 @@ class InternalDataFacade final : public BaseDataFacade
     boost::filesystem::path file_index_path;
     util::RangeTable<16, false> m_name_table;
 
+    // A list storing intersection classes for every node. The itself contains lookup-ids into
+    // smaller tables containing the actual information on the intersection
+    util::ShM<extractor::guidance::IntersectionClass, false> m_intersection_class_list;
+    // the look-up table for entry classes. An entry class lists the possibility of entry for all
+    // available turns
+    util::ShM<extractor::guidance::EntryClass, false> m_entry_class_table;
+    // the look-up table for distinct bearing classes. A bearing class lists the available bearings
+    // at an intersection
+    util::ShM<extractor::guidance::BearingClass, false> m_bearing_class_table;
+
     void LoadProfileProperties(const boost::filesystem::path &properties_path)
     {
         boost::filesystem::ifstream in_stream(properties_path);
@@ -96,7 +109,8 @@ class InternalDataFacade final : public BaseDataFacade
             throw util::exception("Could not open " + properties_path.string() + " for reading.");
         }
 
-        in_stream.read(reinterpret_cast<char*>(&m_profile_properties), sizeof(m_profile_properties));
+        in_stream.read(reinterpret_cast<char *>(&m_profile_properties),
+                       sizeof(m_profile_properties));
     }
 
     void LoadTimestamp(const boost::filesystem::path &timestamp_path)
@@ -223,7 +237,8 @@ class InternalDataFacade final : public BaseDataFacade
         boost::filesystem::ifstream datasources_stream(datasource_indexes_file, std::ios::binary);
         if (!datasources_stream)
         {
-            throw util::exception("Could not open " + datasource_indexes_file.string() + " for reading!");
+            throw util::exception("Could not open " + datasource_indexes_file.string() +
+                                  " for reading!");
         }
         BOOST_ASSERT(datasources_stream);
 
@@ -240,7 +255,8 @@ class InternalDataFacade final : public BaseDataFacade
         boost::filesystem::ifstream datasourcenames_stream(datasource_names_file, std::ios::binary);
         if (!datasourcenames_stream)
         {
-            throw util::exception("Could not open " + datasource_names_file.string() + " for reading!");
+            throw util::exception("Could not open " + datasource_names_file.string() +
+                                  " for reading!");
         }
         BOOST_ASSERT(datasourcenames_stream);
         std::string name;
@@ -276,6 +292,8 @@ class InternalDataFacade final : public BaseDataFacade
         }
     }
 
+    void LoadIntersecionClasses(const boost::filesystem::path &intersection_class_file) {}
+
   public:
     virtual ~InternalDataFacade()
     {
@@ -283,7 +301,7 @@ class InternalDataFacade final : public BaseDataFacade
         m_geospatial_query.reset();
     }
 
-    explicit InternalDataFacade(const storage::StorageConfig& config)
+    explicit InternalDataFacade(const storage::StorageConfig &config)
     {
         ram_index_path = config.ram_index_path;
         file_index_path = config.file_index_path;
@@ -301,8 +319,7 @@ class InternalDataFacade final : public BaseDataFacade
         LoadGeometries(config.geometries_path);
 
         util::SimpleLogger().Write() << "loading datasource info";
-        LoadDatasourceInfo(config.datasource_names_path,
-                           config.datasource_indexes_path);
+        LoadDatasourceInfo(config.datasource_names_path, config.datasource_indexes_path);
 
         util::SimpleLogger().Write() << "loading timestamp";
         LoadTimestamp(config.timestamp_path);
@@ -588,8 +605,7 @@ class InternalDataFacade final : public BaseDataFacade
         result_nodes.clear();
         result_nodes.reserve(end - begin);
         std::for_each(m_geometry_list.begin() + begin, m_geometry_list.begin() + end,
-                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge)
-                      {
+                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge) {
                           result_nodes.emplace_back(edge.node_id);
                       });
     }
@@ -604,8 +620,7 @@ class InternalDataFacade final : public BaseDataFacade
         result_weights.clear();
         result_weights.reserve(end - begin);
         std::for_each(m_geometry_list.begin() + begin, m_geometry_list.begin() + end,
-                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge)
-                      {
+                      [&](const osrm::extractor::CompressedEdgeContainer::CompressedEdge &edge) {
                           result_weights.emplace_back(edge.weight);
                       });
     }
@@ -632,11 +647,9 @@ class InternalDataFacade final : public BaseDataFacade
         }
         else
         {
-            std::for_each(m_datasource_list.begin() + begin, m_datasource_list.begin() + end,
-                          [&](const uint8_t &datasource_id)
-                          {
-                              result_datasources.push_back(datasource_id);
-                          });
+            std::for_each(
+                m_datasource_list.begin() + begin, m_datasource_list.begin() + end,
+                [&](const uint8_t &datasource_id) { result_datasources.push_back(datasource_id); });
         }
     }
 
@@ -649,7 +662,10 @@ class InternalDataFacade final : public BaseDataFacade
 
     std::string GetTimestamp() const override final { return m_timestamp; }
 
-    bool GetContinueStraightDefault() const override final { return m_profile_properties.continue_straight_at_waypoint; }
+    bool GetContinueStraightDefault() const override final
+    {
+        return m_profile_properties.continue_straight_at_waypoint;
+    }
 };
 }
 }
