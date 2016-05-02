@@ -5,9 +5,9 @@
 
 #include "engine/datafacade/datafacade_base.hpp"
 
-#include "extractor/guidance/turn_instruction.hpp"
 #include "extractor/guidance/bearing_class.hpp"
 #include "extractor/guidance/entry_class.hpp"
+#include "extractor/guidance/turn_instruction.hpp"
 
 #include "contractor/query_edge.hpp"
 #include "engine/geospatial_query.hpp"
@@ -16,6 +16,7 @@
 #include "extractor/profile_properties.hpp"
 #include "extractor/query_node.hpp"
 #include "util/graph_loader.hpp"
+#include "util/io.hpp"
 #include "util/range_table.hpp"
 #include "util/rectangle.hpp"
 #include "util/shared_memory_vector_wrapper.hpp"
@@ -90,12 +91,14 @@ class InternalDataFacade final : public BaseDataFacade
     boost::filesystem::path file_index_path;
     util::RangeTable<16, false> m_name_table;
 
+    // bearing classes by node based node
+    util::ShM<BearingClassID, false>::vector m_bearing_class_id_table;
     // the look-up table for entry classes. An entry class lists the possibility of entry for all
     // available turns. For every turn, there is an associated entry class.
-    util::ShM<extractor::guidance::EntryClass, false> m_entry_class_table;
+    util::ShM<extractor::guidance::EntryClass, false>::vector m_entry_class_table;
     // the look-up table for distinct bearing classes. A bearing class lists the available bearings
     // at an intersection
-    util::ShM<extractor::guidance::BearingClass, false> m_bearing_class_table;
+    util::ShM<extractor::guidance::BearingClass, false>::vector m_bearing_class_table;
 
     void LoadProfileProperties(const boost::filesystem::path &properties_path)
     {
@@ -288,7 +291,33 @@ class InternalDataFacade final : public BaseDataFacade
         }
     }
 
-    void LoadIntersecionClasses(const boost::filesystem::path &intersection_class_file) {}
+    void LoadIntersectionClasses(const boost::filesystem::path &intersection_class_file)
+    {
+        std::ifstream intersection_stream(intersection_class_file.string(), std::ios::binary);
+        if (!util::readAndCheckFingerprint(intersection_stream))
+        {
+            util::SimpleLogger().Write(logWARNING)
+                << "Fingerprint does not match or reading failed";
+            return;
+        }
+
+
+        {
+            std::vector<BearingClassID> bearing_class_id;
+            util::deserializeVector(intersection_stream, bearing_class_id);
+            std::copy(bearing_class_id.begin(),bearing_class_id.end(),&m_bearing_class_id_table[0]);
+        }
+        {
+            std::vector<extractor::guidance::BearingClass> bearing_classes;
+            util::deserializeVector(intersection_stream, bearing_classes);
+            std::copy(bearing_classes.begin(),bearing_classes.end(),&m_bearing_class_table[0]);
+        }
+        {
+            std::vector<extractor::guidance::EntryClass> entry_classes;
+            util::deserializeVector(intersection_stream, m_entry_class_table);
+            std::copy(entry_classes.begin(),entry_classes.end(),&m_entry_class_table[0]);
+        }
+    }
 
   public:
     virtual ~InternalDataFacade()
@@ -325,6 +354,9 @@ class InternalDataFacade final : public BaseDataFacade
 
         util::SimpleLogger().Write() << "loading street names";
         LoadStreetNames(config.names_data_path);
+
+        util::SimpleLogger().Write() << "loading intersection class data";
+        LoadIntersectionClasses(config.intersection_class_path);
     }
 
     // search graph access
@@ -661,6 +693,30 @@ class InternalDataFacade final : public BaseDataFacade
     bool GetContinueStraightDefault() const override final
     {
         return m_profile_properties.continue_straight_at_waypoint;
+    }
+
+    BearingClassID GetBearingClassID(const NodeID id) const override final
+    {
+        return INVALID_BEARING_CLASSID;
+    }
+
+    extractor::guidance::BearingClass
+    GetBearingClass(const BearingClassID bearing_class_id) const override final
+    {
+        BOOST_ASSERT(bearing_class_id != INVALID_BEARING_CLASSID);
+        return {};
+    }
+
+    EntryClassID GetEntryClassID(const EdgeID eid) const override final
+    {
+        return INVALID_ENTRY_CLASSID;
+    }
+
+    extractor::guidance::EntryClass
+    GetEntryClass(const EntryClassID entry_class_id) const override final
+    {
+        BOOST_ASSERT(entry_class_id != INVALID_ENTRY_CLASSID);
+        return {};
     }
 };
 }

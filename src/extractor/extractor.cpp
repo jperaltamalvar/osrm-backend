@@ -17,8 +17,6 @@
 #include "util/simple_logger.hpp"
 #include "util/timing_util.hpp"
 
-#include "util/typedefs.hpp"
-
 #include "extractor/compressed_edge_container.hpp"
 #include "extractor/restriction_map.hpp"
 #include "util/static_graph.hpp"
@@ -609,7 +607,7 @@ void Extractor::WriteEdgeBasedGraph(
 
 void Extractor::WriteIntersectionClassificationData(
     const std::string &output_file_name,
-    const std::vector<std::uint32_t> &node_based_intersection_classes,
+    const std::vector<BearingClassID> &node_based_intersection_classes,
     const std::vector<guidance::BearingClass> &bearing_classes,
     const std::vector<guidance::EntryClass> &entry_classes) const
 {
@@ -635,7 +633,10 @@ void Extractor::WriteIntersectionClassificationData(
                   "EntryClass Serialization requires trivial copyable entry classes");
 
     util::serializeVector(file_out_stream, entry_classes);
-    util::SimpleLogger().Write() << "ok, after " << TIMER_SEC(write_edges) << "s" << std::endl;
+    util::SimpleLogger().Write() << "ok, after " << TIMER_SEC(write_edges) << "s for "
+                                 << node_based_intersection_classes.size() << " Indices into "
+                                 << bearing_classes.size() << " bearing classes and "
+                                 << entry_classes.size() << " entry classes";
 }
 }
 }

@@ -513,12 +513,12 @@ std::vector<guidance::BearingClass> EdgeBasedGraphFactory::GetBearingClasses() c
     return result;
 }
 
-const std::vector<std::uint32_t> &EdgeBasedGraphFactory::GetBearingClassIds() const
+const std::vector<BearingClassID> &EdgeBasedGraphFactory::GetBearingClassIds() const
 {
     return bearing_class_by_node_based_node;
 }
 
-std::vector<std::uint32_t> &EdgeBasedGraphFactory::GetBearingClassIds()
+std::vector<BearingClassID> &EdgeBasedGraphFactory::GetBearingClassIds()
 {
     return bearing_class_by_node_based_node;
 }

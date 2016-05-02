@@ -70,8 +70,8 @@ class EdgeBasedGraphFactory
     void GetEdgeBasedNodeWeights(std::vector<EdgeWeight> &output_node_weights);
 
     // These access functions don't destroy the content
-    const std::vector<std::uint32_t> &GetBearingClassIds() const;
-    std::vector<std::uint32_t> &GetBearingClassIds();
+    const std::vector<BearingClassID> &GetBearingClassIds() const;
+    std::vector<BearingClassID> &GetBearingClassIds();
     std::vector<guidance::BearingClass> GetBearingClasses() const;
     std::vector<guidance::EntryClass> GetEntryClasses() const;
 
@@ -136,9 +136,9 @@ class EdgeBasedGraphFactory
     std::size_t skipped_uturns_counter;
     std::size_t skipped_barrier_turns_counter;
 
-    std::unordered_map<guidance::BearingClass, std::uint32_t> bearing_class_hash;
-    std::vector<std::uint32_t> bearing_class_by_node_based_node;
-    std::unordered_map<guidance::EntryClass, std::uint16_t> entry_class_hash;
+    std::unordered_map<guidance::BearingClass, BearingClassID> bearing_class_hash;
+    std::vector<BearingClassID> bearing_class_by_node_based_node;
+    std::unordered_map<guidance::EntryClass, EntryClassID> entry_class_hash;
 };
 } // namespace extractor
 } // namespace osrm

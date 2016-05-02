@@ -37,7 +37,7 @@ struct OriginalEdgeData
     NodeID via_node;
     unsigned name_id;
     guidance::TurnInstruction turn_instruction;
-    std::uint16_t entry_class;
+    EntryClassID entry_class;
     TravelMode travel_mode;
 };
 }

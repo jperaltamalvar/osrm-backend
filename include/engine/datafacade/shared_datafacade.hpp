@@ -7,9 +7,9 @@
 #include "storage/shared_datatype.hpp"
 #include "storage/shared_memory.hpp"
 
-#include "extractor/guidance/turn_instruction.hpp"
 #include "extractor/guidance/bearing_class.hpp"
 #include "extractor/guidance/entry_class.hpp"
+#include "extractor/guidance/turn_instruction.hpp"
 #include "extractor/profile_properties.hpp"
 
 #include "engine/geospatial_query.hpp"
@@ -96,12 +96,14 @@ class SharedDataFacade final : public BaseDataFacade
 
     std::shared_ptr<util::RangeTable<16, true>> m_name_table;
 
+    // bearing classes by node based node
+    util::ShM<BearingClassID, true>::vector m_bearing_class_id_table;
     // the look-up table for entry classes. An entry class lists the possibility of entry for all
     // available turns. Such a class id is stored with every edge.
-    util::ShM<extractor::guidance::EntryClass, true> m_entry_class_table;
+    util::ShM<extractor::guidance::EntryClass, true>::vector m_entry_class_table;
     // the look-up table for distinct bearing classes. A bearing class lists the available bearings
     // at an intersection
-    util::ShM<extractor::guidance::BearingClass, true> m_bearing_class_table;
+    util::ShM<extractor::guidance::BearingClass, true>::vector m_bearing_class_table;
 
     void LoadChecksum()
     {
@@ -274,6 +276,28 @@ class SharedDataFacade final : public BaseDataFacade
             datasource_name_lengths_ptr,
             data_layout->num_entries[storage::SharedDataLayout::DATASOURCE_NAME_LENGTHS]);
         m_datasource_name_lengths = std::move(datasource_name_lengths);
+    }
+
+    void LoadIntersecionClasses(const boost::filesystem::path &intersection_class_file)
+    {
+        auto bearing_class_id_ptr = data_layout->GetBlockPtr<BearingClassID>(
+            shared_memory, storage::SharedDataLayout::BEARING_CLASSID);
+        typename util::ShM<BearingClassID, true>::vector bearing_class_id_table(
+            bearing_class_id_ptr,
+            data_layout->num_entries[storage::SharedDataLayout::BEARING_CLASSID]);
+        m_bearing_class_id_table = std::move(bearing_class_id_table);
+
+        auto bearing_class_ptr = data_layout->GetBlockPtr<extractor::guidance::BearingClass>(
+            shared_memory, storage::SharedDataLayout::BEARING_CLASS);
+        typename util::ShM<extractor::guidance::BearingClass, true>::vector bearing_class_table(
+            bearing_class_ptr, data_layout->num_entries[storage::SharedDataLayout::BEARING_CLASS]);
+        m_bearing_class_table = std::move(bearing_class_table);
+
+        auto entry_class_ptr = data_layout->GetBlockPtr<extractor::guidance::EntryClass>(
+            shared_memory, storage::SharedDataLayout::ENTRY_CLASS);
+        typename util::ShM<extractor::guidance::EntryClass, true>::vector entry_class_table(
+            entry_class_ptr, data_layout->num_entries[storage::SharedDataLayout::ENTRY_CLASS]);
+        m_entry_class_table = std::move(entry_class_table);
     }
 
   public:
@@ -717,6 +741,30 @@ class SharedDataFacade final : public BaseDataFacade
     bool GetContinueStraightDefault() const override final
     {
         return m_profile_properties->continue_straight_at_waypoint;
+    }
+
+    BearingClassID GetBearingClassID(const NodeID id) const override final
+    {
+        return INVALID_BEARING_CLASSID;
+    }
+
+    extractor::guidance::BearingClass
+    GetBearingClass(const BearingClassID bearing_class_id) const override final
+    {
+        BOOST_ASSERT(bearing_class_id != INVALID_BEARING_CLASSID);
+        return {};
+    }
+
+    EntryClassID GetEntryClassID(const EdgeID eid) const override final
+    {
+        return INVALID_ENTRY_CLASSID;
+    }
+
+    extractor::guidance::EntryClass
+    GetEntryClass(const EntryClassID entry_class_id) const override final
+    {
+        BOOST_ASSERT(entry_class_id != INVALID_ENTRY_CLASSID);
+        return {};
     }
 };
 }
