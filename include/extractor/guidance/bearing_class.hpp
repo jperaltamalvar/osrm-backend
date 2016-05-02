@@ -49,6 +49,10 @@ class BearingClass
 
     // hashing
     bool operator==(const BearingClass &other) const;
+
+    // sorting
+    bool operator<(const BearingClass &other) const;
+
     // we are hiding the access to the flags behind a protection wall, to make sure the bit logic
     // isn't tempered with
   private:

@@ -49,6 +49,9 @@ class EntryClass
     // required for hashing
     bool operator==(const EntryClass &) const;
 
+    // sorting
+    bool operator<(const EntryClass &) const;
+
   private:
     // given a list of possible discrete angles, the available angles flag indicates the presence of
     // a given turn at the intersection

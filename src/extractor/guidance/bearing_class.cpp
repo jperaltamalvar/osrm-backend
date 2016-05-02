@@ -41,6 +41,11 @@ bool BearingClass::operator==(const BearingClass &other) const
     return other.available_angles_flag == available_angles_flag;
 }
 
+bool BearingClass::operator<(const BearingClass &other) const
+{
+    return available_angles_flag < other.available_angles_flag;
+}
+
 void BearingClass::addContinuous(const double angle)
 {
     auto discrete = discretizeAngle(angle);

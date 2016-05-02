@@ -325,10 +325,8 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
     guidance::TurnAnalysis turn_analysis(*m_node_based_graph, m_node_info_list, *m_restriction_map,
                                          m_barrier_nodes, m_compressed_edge_container, name_table);
 
-    std::vector<std::uint32_t> bearing_class_by_node_based_node(
-        m_node_based_graph->GetNumberOfNodes(), std::numeric_limits<std::uint32_t>::max());
-    std::unordered_map<guidance::BearingClass, std::uint32_t> bearing_class_hash;
-    std::unordered_map<guidance::EntryClass, std::uint16_t> entry_class_hash;
+    bearing_class_by_node_based_node.resize(m_node_based_graph->GetNumberOfNodes(),
+                                            std::numeric_limits<std::uint32_t>::max());
 
     for (const auto node_u : util::irange(0u, m_node_based_graph->GetNumberOfNodes()))
     {
@@ -502,6 +500,38 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
     util::SimpleLogger().Write() << "  skips " << skipped_uturns_counter << " U turns";
     util::SimpleLogger().Write() << "  skips " << skipped_barrier_turns_counter
                                  << " turns over barriers";
+}
+
+std::vector<guidance::BearingClass> EdgeBasedGraphFactory::GetBearingClasses() const
+{
+    std::vector<guidance::BearingClass> result(bearing_class_hash.size());
+    for (const auto &pair : bearing_class_hash)
+    {
+        BOOST_ASSERT(pair.second < result.size());
+        result[pair.second] = pair.first;
+    }
+    return result;
+}
+
+const std::vector<std::uint32_t> &EdgeBasedGraphFactory::GetBearingClassIds() const
+{
+    return bearing_class_by_node_based_node;
+}
+
+std::vector<std::uint32_t> &EdgeBasedGraphFactory::GetBearingClassIds()
+{
+    return bearing_class_by_node_based_node;
+}
+
+std::vector<guidance::EntryClass> EdgeBasedGraphFactory::GetEntryClasses() const
+{
+    std::vector<guidance::EntryClass> result(entry_class_hash.size());
+    for (const auto &pair : entry_class_hash)
+    {
+        BOOST_ASSERT(pair.second < result.size());
+        result[pair.second] = pair.first;
+    }
+    return result;
 }
 
 int EdgeBasedGraphFactory::GetTurnPenalty(double angle, lua_State *lua_state) const
