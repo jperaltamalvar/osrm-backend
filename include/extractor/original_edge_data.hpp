@@ -18,10 +18,10 @@ struct OriginalEdgeData
     explicit OriginalEdgeData(NodeID via_node,
                               unsigned name_id,
                               guidance::TurnInstruction turn_instruction,
-                              std::uint16_t entry_class,
+                              EntryClassID entry_classid,
                               TravelMode travel_mode)
         : via_node(via_node), name_id(name_id), turn_instruction(turn_instruction),
-          entry_class(entry_class), travel_mode(travel_mode)
+          entry_classid(entry_classid), travel_mode(travel_mode)
     {
     }
 
@@ -29,7 +29,7 @@ struct OriginalEdgeData
         : via_node(std::numeric_limits<unsigned>::max()),
           name_id(std::numeric_limits<unsigned>::max()),
           turn_instruction(guidance::TurnInstruction::INVALID()),
-          entry_class(std::numeric_limits<std::uint16_t>::max()),
+          entry_classid(INVALID_ENTRY_CLASSID),
           travel_mode(TRAVEL_MODE_INACCESSIBLE)
     {
     }
@@ -37,7 +37,7 @@ struct OriginalEdgeData
     NodeID via_node;
     unsigned name_id;
     guidance::TurnInstruction turn_instruction;
-    EntryClassID entry_class;
+    EntryClassID entry_classid;
     TravelMode travel_mode;
 };
 }

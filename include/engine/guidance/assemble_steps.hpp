@@ -7,11 +7,14 @@
 #include "engine/guidance/toolkit.hpp"
 #include "engine/internal_route_result.hpp"
 #include "engine/phantom_node.hpp"
+#include "extractor/guidance/bearing_class.hpp"
+#include "extractor/guidance/entry_class.hpp"
 #include "extractor/guidance/turn_instruction.hpp"
 #include "extractor/travel_mode.hpp"
 #include "util/bearing.hpp"
 #include "util/coordinate.hpp"
 #include "util/coordinate_calculation.hpp"
+#include "util/typedefs.hpp"
 
 #include <boost/optional.hpp>
 #include <vector>
@@ -26,12 +29,13 @@ namespace detail
 {
 StepManeuver stepManeuverFromGeometry(extractor::guidance::TurnInstruction instruction,
                                       const LegGeometry &leg_geometry,
-                                      const std::size_t segment_index);
+                                      const std::size_t segment_index,
+                                      extractor::guidance::EntryClass entry_class,
+                                      extractor::guidance::BearingClass bearing_class);
 
 StepManeuver stepManeuverFromGeometry(extractor::guidance::TurnInstruction instruction,
                                       const WaypointType waypoint_type,
                                       const LegGeometry &leg_geometry);
-
 } // ns detail
 
 template <typename DataFacadeT>
@@ -89,8 +93,10 @@ std::vector<RouteStep> assembleSteps(const DataFacadeT &facade,
                                           segment_duration / 10.0, distance, path_point.travel_mode,
                                           maneuver, leg_geometry.FrontIndex(segment_index),
                                           leg_geometry.BackIndex(segment_index) + 1});
-                maneuver = detail::stepManeuverFromGeometry(path_point.turn_instruction,
-                                                            leg_geometry, segment_index);
+                maneuver = detail::stepManeuverFromGeometry(
+                    path_point.turn_instruction, leg_geometry, segment_index,
+                    facade.GetEntryClass(path_point.entry_classid),
+                    facade.GetBearingClass(facade.GetBearingClassID(path_point.turn_via_node)));
                 segment_index++;
                 segment_duration = 0;
             }
@@ -132,7 +138,7 @@ std::vector<RouteStep> assembleSteps(const DataFacadeT &facade,
     BOOST_ASSERT(!leg_geometry.locations.empty());
     steps.push_back(RouteStep{target_node.name_id, facade.GetNameForID(target_node.name_id),
                               NO_ROTARY_NAME, ZERO_DURATION, ZERO_DISTANCE, target_mode,
-                              final_maneuver, leg_geometry.locations.size()-1,
+                              final_maneuver, leg_geometry.locations.size() - 1,
                               leg_geometry.locations.size()});
 
     return steps;

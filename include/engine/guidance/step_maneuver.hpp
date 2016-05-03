@@ -1,8 +1,10 @@
 #ifndef ENGINE_GUIDANCE_STEP_MANEUVER_HPP
 #define ENGINE_GUIDANCE_STEP_MANEUVER_HPP
 
-#include "util/coordinate.hpp"
+#include "extractor/guidance/bearing_class.hpp"
+#include "extractor/guidance/entry_class.hpp"
 #include "extractor/guidance/turn_instruction.hpp"
+#include "util/coordinate.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -21,12 +23,14 @@ enum class WaypointType : std::uint8_t
     Depart,
 };
 
-//A represenetation of intermediate intersections
+// A represenetation of intermediate intersections
 struct IntermediateIntersection
 {
     double duration;
     double distance;
     util::Coordinate location;
+    extractor::guidance::EntryClass entry_class;
+    extractor::guidance::BearingClass bearing_class;
 };
 
 struct StepManeuver
@@ -37,6 +41,8 @@ struct StepManeuver
     extractor::guidance::TurnInstruction instruction;
     WaypointType waypoint_type;
     unsigned exit;
+    extractor::guidance::EntryClass entry_class;
+    extractor::guidance::BearingClass bearing_class;
     std::vector<IntermediateIntersection> intersections;
 };
 } // namespace guidance

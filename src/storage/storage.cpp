@@ -164,6 +164,8 @@ int Storage::Run()
                                                            number_of_original_edges);
     shared_layout_ptr->SetBlockSize<extractor::guidance::TurnInstruction>(
         SharedDataLayout::TURN_INSTRUCTION, number_of_original_edges);
+    shared_layout_ptr->SetBlockSize<EntryClassID>(SharedDataLayout::ENTRY_CLASSID,
+                                                  number_of_original_edges);
 
     boost::filesystem::ifstream hsgr_input_stream(config.hsgr_data_path, std::ios::binary);
     if (!hsgr_input_stream)
@@ -393,7 +395,7 @@ int Storage::Run()
         name_id_ptr[i] = current_edge_data.name_id;
         travel_mode_ptr[i] = current_edge_data.travel_mode;
         turn_instructions_ptr[i] = current_edge_data.turn_instruction;
-        entry_class_id_ptr[i] = current_edge_data.entry_class;
+        entry_class_id_ptr[i] = current_edge_data.entry_classid;
     }
     edges_input_stream.close();
 
@@ -580,20 +582,28 @@ int Storage::Run()
 
         std::vector<BearingClassID> bearing_class_id_table;
         util::deserializeVector(intersection_stream, bearing_class_id_table);
+        shared_layout_ptr->SetBlockSize<BearingClassID>(SharedDataLayout::BEARING_CLASSID,
+                                                        bearing_class_id_table.size());
         auto bearing_id_ptr = shared_layout_ptr->GetBlockPtr<BearingClassID, true>(
             shared_memory_ptr, SharedDataLayout::BEARING_CLASSID);
         std::copy(bearing_class_id_table.begin(), bearing_class_id_table.end(), bearing_id_ptr);
 
-        auto bearing_class_ptr = shared_layout_ptr->GetBlockPtr<extractor::guidance::BearingClass, true>(
-            shared_memory_ptr, SharedDataLayout::BEARING_CLASS);
+        auto bearing_class_ptr =
+            shared_layout_ptr->GetBlockPtr<extractor::guidance::BearingClass, true>(
+                shared_memory_ptr, SharedDataLayout::BEARING_CLASS);
         std::vector<extractor::guidance::BearingClass> bearing_class_table;
         util::deserializeVector(intersection_stream, bearing_class_table);
+        shared_layout_ptr->SetBlockSize<extractor::guidance::BearingClass>(
+            SharedDataLayout::BEARING_CLASS, bearing_class_table.size());
         std::copy(bearing_class_table.begin(), bearing_class_table.end(), bearing_class_ptr);
 
-        auto entry_class_ptr = shared_layout_ptr->GetBlockPtr<extractor::guidance::EntryClass, true>(
-            shared_memory_ptr, SharedDataLayout::ENTRY_CLASS);
+        auto entry_class_ptr =
+            shared_layout_ptr->GetBlockPtr<extractor::guidance::EntryClass, true>(
+                shared_memory_ptr, SharedDataLayout::ENTRY_CLASS);
         std::vector<extractor::guidance::EntryClass> entry_class_table;
         util::deserializeVector(intersection_stream, entry_class_table);
+        shared_layout_ptr->SetBlockSize<extractor::guidance::EntryClass>(
+            SharedDataLayout::ENTRY_CLASS, entry_class_table.size());
         std::copy(entry_class_table.begin(), entry_class_table.end(), entry_class_ptr);
     }
 

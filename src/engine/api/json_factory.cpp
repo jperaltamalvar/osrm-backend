@@ -160,6 +160,8 @@ util::json::Object makeRouteStep(guidance::RouteStep step, util::json::Value geo
     route_step.values["mode"] = detail::modeToString(std::move(step.mode));
     route_step.values["maneuver"] = makeStepManeuver(std::move(step.maneuver));
     route_step.values["geometry"] = std::move(geometry);
+    route_step.values["bearings"] = step.maneuver.bearing_class.getStringRepresentation();
+    route_step.values["entries"] = step.maneuver.entry_class.getStringRepresentation();
     return route_step;
 }
 

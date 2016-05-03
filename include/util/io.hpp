@@ -8,8 +8,8 @@
 #include <cstddef>
 #include <cstdint>
 
-#include <fstream>
 #include <bitset>
+#include <fstream>
 #include <vector>
 
 #include "util/fingerprint.hpp"
@@ -52,10 +52,8 @@ bool serializeVector(const std::string &filename, const std::vector<simple_type>
 }
 
 template <typename simple_type>
-bool serializeVector( std::ostream &stream, const std::vector<simple_type> &data)
+bool serializeVector(std::ostream &stream, const std::vector<simple_type> &data)
 {
-    writeFingerprint(stream);
-
     std::uint64_t count = data.size();
     stream.write(reinterpret_cast<const char *>(&count), sizeof(count));
     if (!data.empty())
@@ -80,7 +78,7 @@ bool deserializeVector(const std::string &filename, std::vector<simple_type> &da
 }
 
 template <typename simple_type>
-bool deserializeVector( std::istream &stream, std::vector<simple_type> &data)
+bool deserializeVector(std::istream &stream, std::vector<simple_type> &data)
 {
     std::uint64_t count = 0;
     stream.read(reinterpret_cast<char *>(&count), sizeof(count));

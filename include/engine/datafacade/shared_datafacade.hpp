@@ -98,6 +98,8 @@ class SharedDataFacade final : public BaseDataFacade
 
     // bearing classes by node based node
     util::ShM<BearingClassID, true>::vector m_bearing_class_id_table;
+    // entry class IDs
+    util::ShM<EntryClassID, true>::vector m_entry_class_id_list;
     // the look-up table for entry classes. An entry class lists the possibility of entry for all
     // available turns. Such a class id is stored with every edge.
     util::ShM<extractor::guidance::EntryClass, true>::vector m_entry_class_table;
@@ -186,6 +188,13 @@ class SharedDataFacade final : public BaseDataFacade
         typename util::ShM<unsigned, true>::vector name_id_list(
             name_id_list_ptr, data_layout->num_entries[storage::SharedDataLayout::NAME_ID_LIST]);
         m_name_ID_list = std::move(name_id_list);
+
+        auto entry_class_id_list_ptr = data_layout->GetBlockPtr<EntryClassID>(
+            shared_memory, storage::SharedDataLayout::ENTRY_CLASSID);
+        typename util::ShM<EntryClassID, true>::vector entry_class_id_list(
+            entry_class_id_list_ptr,
+            data_layout->num_entries[storage::SharedDataLayout::ENTRY_CLASSID]);
+        m_entry_class_id_list = std::move(entry_class_id_list);
     }
 
     void LoadViaNodeList()
@@ -278,7 +287,7 @@ class SharedDataFacade final : public BaseDataFacade
         m_datasource_name_lengths = std::move(datasource_name_lengths);
     }
 
-    void LoadIntersecionClasses(const boost::filesystem::path &intersection_class_file)
+    void LoadIntersecionClasses()
     {
         auto bearing_class_id_ptr = data_layout->GetBlockPtr<BearingClassID>(
             shared_memory, storage::SharedDataLayout::BEARING_CLASSID);
@@ -386,6 +395,7 @@ class SharedDataFacade final : public BaseDataFacade
                 LoadNames();
                 LoadCoreInformation();
                 LoadProfileProperties();
+                LoadIntersecionClasses();
 
                 util::SimpleLogger().Write() << "number of geometries: "
                                              << m_coordinate_list->size();
@@ -745,26 +755,26 @@ class SharedDataFacade final : public BaseDataFacade
 
     BearingClassID GetBearingClassID(const NodeID id) const override final
     {
-        return INVALID_BEARING_CLASSID;
+        return m_bearing_class_id_table.at(id);
     }
 
     extractor::guidance::BearingClass
     GetBearingClass(const BearingClassID bearing_class_id) const override final
     {
         BOOST_ASSERT(bearing_class_id != INVALID_BEARING_CLASSID);
-        return {};
+        return m_bearing_class_table.at(bearing_class_id);
     }
 
     EntryClassID GetEntryClassID(const EdgeID eid) const override final
     {
-        return INVALID_ENTRY_CLASSID;
+        return m_entry_class_id_list.at(eid);
     }
 
     extractor::guidance::EntryClass
     GetEntryClass(const EntryClassID entry_class_id) const override final
     {
         BOOST_ASSERT(entry_class_id != INVALID_ENTRY_CLASSID);
-        return {};
+        return m_entry_class_table.at(entry_class_id);
     }
 };
 }

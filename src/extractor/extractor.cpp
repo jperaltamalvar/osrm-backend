@@ -633,6 +633,7 @@ void Extractor::WriteIntersectionClassificationData(
                   "EntryClass Serialization requires trivial copyable entry classes");
 
     util::serializeVector(file_out_stream, entry_classes);
+    TIMER_STOP(write_edges);
     util::SimpleLogger().Write() << "ok, after " << TIMER_SEC(write_edges) << "s for "
                                  << node_based_intersection_classes.size() << " Indices into "
                                  << bearing_classes.size() << " bearing classes and "

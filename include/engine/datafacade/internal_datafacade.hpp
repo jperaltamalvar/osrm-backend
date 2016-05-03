@@ -93,6 +93,8 @@ class InternalDataFacade final : public BaseDataFacade
 
     // bearing classes by node based node
     util::ShM<BearingClassID, false>::vector m_bearing_class_id_table;
+    // entry class IDs by edge based egde
+    util::ShM<EntryClassID, false>::vector m_entry_class_id_list;
     // the look-up table for entry classes. An entry class lists the possibility of entry for all
     // available turns. For every turn, there is an associated entry class.
     util::ShM<extractor::guidance::EntryClass, false>::vector m_entry_class_table;
@@ -166,6 +168,7 @@ class InternalDataFacade final : public BaseDataFacade
         m_name_ID_list.resize(number_of_edges);
         m_turn_instruction_list.resize(number_of_edges);
         m_travel_mode_list.resize(number_of_edges);
+        m_entry_class_id_list.resize(number_of_edges);
 
         extractor::OriginalEdgeData current_edge_data;
         for (unsigned i = 0; i < number_of_edges; ++i)
@@ -176,6 +179,7 @@ class InternalDataFacade final : public BaseDataFacade
             m_name_ID_list[i] = current_edge_data.name_id;
             m_turn_instruction_list[i] = current_edge_data.turn_instruction;
             m_travel_mode_list[i] = current_edge_data.travel_mode;
+            m_entry_class_id_list[i] = current_edge_data.entry_classid;
         }
     }
 
@@ -294,28 +298,37 @@ class InternalDataFacade final : public BaseDataFacade
     void LoadIntersectionClasses(const boost::filesystem::path &intersection_class_file)
     {
         std::ifstream intersection_stream(intersection_class_file.string(), std::ios::binary);
+        if (!intersection_stream)
+            util::SimpleLogger().Write(logWARNING) << "Failed to open " << intersection_class_file
+                                                   << " for reading.";
         if (!util::readAndCheckFingerprint(intersection_stream))
         {
             util::SimpleLogger().Write(logWARNING)
                 << "Fingerprint does not match or reading failed";
-            return;
+            exit(-1);
         }
 
-
         {
+            util::SimpleLogger().Write(logINFO) << "Loading Bearing Class IDs";
             std::vector<BearingClassID> bearing_class_id;
             util::deserializeVector(intersection_stream, bearing_class_id);
-            std::copy(bearing_class_id.begin(),bearing_class_id.end(),&m_bearing_class_id_table[0]);
+            m_bearing_class_id_table.resize(bearing_class_id.size());
+            std::copy(bearing_class_id.begin(), bearing_class_id.end(),
+                      &m_bearing_class_id_table[0]);
         }
         {
+            util::SimpleLogger().Write(logINFO) << "Loading Bearing Classes";
             std::vector<extractor::guidance::BearingClass> bearing_classes;
             util::deserializeVector(intersection_stream, bearing_classes);
-            std::copy(bearing_classes.begin(),bearing_classes.end(),&m_bearing_class_table[0]);
+            m_bearing_class_table.resize(bearing_classes.size());
+            std::copy(bearing_classes.begin(), bearing_classes.end(), &m_bearing_class_table[0]);
         }
         {
+            util::SimpleLogger().Write(logINFO) << "Loading Entry Classes";
             std::vector<extractor::guidance::EntryClass> entry_classes;
-            util::deserializeVector(intersection_stream, m_entry_class_table);
-            std::copy(entry_classes.begin(),entry_classes.end(),&m_entry_class_table[0]);
+            util::deserializeVector(intersection_stream, entry_classes);
+            m_entry_class_table.resize(entry_classes.size());
+            std::copy(entry_classes.begin(), entry_classes.end(), &m_entry_class_table[0]);
         }
     }
 
@@ -695,28 +708,28 @@ class InternalDataFacade final : public BaseDataFacade
         return m_profile_properties.continue_straight_at_waypoint;
     }
 
-    BearingClassID GetBearingClassID(const NodeID id) const override final
+    BearingClassID GetBearingClassID(const NodeID nid) const override final
     {
-        return INVALID_BEARING_CLASSID;
+        return m_bearing_class_id_table.at(nid);
     }
 
     extractor::guidance::BearingClass
     GetBearingClass(const BearingClassID bearing_class_id) const override final
     {
         BOOST_ASSERT(bearing_class_id != INVALID_BEARING_CLASSID);
-        return {};
+        return m_bearing_class_table.at(bearing_class_id);
     }
 
     EntryClassID GetEntryClassID(const EdgeID eid) const override final
     {
-        return INVALID_ENTRY_CLASSID;
+        return m_entry_class_id_list.at(eid);
     }
 
     extractor::guidance::EntryClass
     GetEntryClass(const EntryClassID entry_class_id) const override final
     {
         BOOST_ASSERT(entry_class_id != INVALID_ENTRY_CLASSID);
-        return {};
+        return m_entry_class_table.at(entry_class_id);
     }
 };
 }
