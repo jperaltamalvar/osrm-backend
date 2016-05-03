@@ -2,6 +2,7 @@
    - API:
      - added roundabout-turn instruction. The instruction indicates a small roundabout that is treated as an intersection
         (turn right at the roundabout for first exit, go straight at the roundabout...)
+     - added exit_ramp instruction. The instruction allows to distinguish between on-ramps (ramp) and off-ramps (exit_ramp)
      - reduced new name instructions for trivial changes
      - combined multiple turns into a single instruction at segregated roads`
 
